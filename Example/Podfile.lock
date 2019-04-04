@@ -1,0 +1,31 @@
+PODS:
+  - ObjectMapper (3.4.1)
+  - Result (4.0.0)
+  - SwiftyJSON (4.2.0)
+  - Vite_GrinWallet (0.1.0):
+    - ObjectMapper
+    - Result
+    - SwiftyJSON
+
+DEPENDENCIES:
+  - Vite_GrinWallet (from `../`)
+
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - ObjectMapper
+    - Result
+    - SwiftyJSON
+
+EXTERNAL SOURCES:
+  Vite_GrinWallet:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  ObjectMapper: 5311bd50ca732930959e7ca1a2de43ab823a5ced
+  Result: 7645bb3f50c2ce726dd0ff2fa7b6f42bbe6c3713
+  SwiftyJSON: c4bcba26dd9ec7a027fc8eade48e2c911f229e96
+  Vite_GrinWallet: 452e7348a300235990b013535d0fb560c1fabf31
+
+PODFILE CHECKSUM: 8dd183fdda4187105d50dbd56182baa8adf9ba03
+
+COCOAPODS: 1.5.3

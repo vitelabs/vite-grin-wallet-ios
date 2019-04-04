@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'Vite_GrinWallet_Example' do
+  pod 'Vite_GrinWallet', :path => '../'
+
+  target 'Vite_GrinWallet_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
