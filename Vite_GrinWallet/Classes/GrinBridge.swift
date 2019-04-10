@@ -182,7 +182,7 @@ open class GrinBridge {
     }
 
     public func isResponseSlate(slatePath: String) -> Bool {
-        return slatePath.components(separatedBy: ".").last == "response"
+        return slatePath.components(separatedBy: ".").last == "response" || slatePath.contains("response")
     }
 
     public func getSlateUrl(slateId: String, isResponse: Bool) -> URL {

@@ -23,10 +23,10 @@ term = "0.5"
 prettytable-rs = "0.7"
 uuid = "0.6.5"
 
-grin_wallet = { git = "https://github.com/haoshenyang/grin", rev = "8b84453a51d4affacce55bc83b7a6138d6556023" }
-grin_core = { git = "https://github.com/haoshenyang/grin", rev = "8b84453a51d4affacce55bc83b7a6138d6556023" }
-grin_util = { git = "https://github.com/haoshenyang/grin", rev = "8b84453a51d4affacce55bc83b7a6138d6556023" }
-grin_keychain = { git = "https://github.com/haoshenyang/grin", rev = "8b84453a51d4affacce55bc83b7a6138d6556023" }
+grin_wallet = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
+grin_core = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
+grin_util = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
+grin_keychain = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
 
 [build-dependencies]
 built = "0.3"
