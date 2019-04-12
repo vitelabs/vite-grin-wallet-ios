@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+// This code is extended from Ivan Sorokin's work in IronBelly. Original copyright has been retained.
+
 #include <stdint.h>
 
 void cstr_free (const char* s);

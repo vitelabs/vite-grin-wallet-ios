@@ -13,6 +13,8 @@
 // limitations under the License.
 
 
+// This code is mostly based on Ivan Sorokin's work in IronBelly. Original copyright has been retained.
+
 use grin_core::global::ChainTypes;
 use grin_keychain::ExtKeychain;
 use grin_util::file::get_first_line;
