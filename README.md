@@ -2,6 +2,8 @@
 
 A CocoaPods wrapper around the official [Grin](https://github.com/mimblewimble/grin/) source code and communtiy source code.
 
+It is very inspired by [ironbelly](https://github.com/cyclefortytwo/ironbelly).
+
 To install it simply add the following line to your Podfile:
 
 ```
