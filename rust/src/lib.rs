@@ -75,7 +75,7 @@ fn wallet_init(
 ) -> Result<String, grin_wallet::Error> {
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
-    let seed = WalletSeed::init_file(&wallet_config, 16, None, &password)?;
+    let seed = WalletSeed::init_file(&wallet_config, 24, None, &password)?;
     let client_n = HTTPNodeClient::new(
         &wallet_config.check_node_api_http_addr,
         node_api_secret.clone(),
@@ -283,6 +283,84 @@ pub unsafe extern "C" fn grin_txs_get(
     )
 }
 
+fn outputs_get(
+    path: &str,
+    chain_type: &str,
+    account: &str,
+    password: &str,
+    check_node_api_http_addr: &str,
+    refresh_from_node: bool,
+) -> Result<String, grin_wallet::Error> {
+    let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
+    let api = APIOwner::new(wallet.clone());
+    let outputs = api.retrieve_outputs(true,refresh_from_node, None)?;
+    Ok(serde_json::to_string(&outputs).unwrap())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn grin_outputs_get(
+    path: *const c_char,
+    chain_type: *const c_char,
+    account: *const c_char,
+    password: *const c_char,
+    check_node_api_http_addr: *const c_char,
+    refresh_from_node: bool,
+    error: *mut u8,
+) -> *const c_char {
+    unwrap_to_c!(
+        outputs_get(
+            &c_str_to_rust(path),
+            &c_str_to_rust(chain_type),
+            &c_str_to_rust(account),
+            &c_str_to_rust(password),
+            &c_str_to_rust(check_node_api_http_addr),
+            refresh_from_node,
+        ),
+        error
+    )
+}
+
+fn output_get(
+    path: &str,
+    chain_type: &str,
+    account: &str,
+    password: &str,
+    check_node_api_http_addr: &str,
+    refresh_from_node: bool,
+    tx_id: u32,
+) -> Result<String, grin_wallet::Error> {
+    let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
+    let api = APIOwner::new(wallet.clone());
+    let outputs = api.retrieve_outputs(true,refresh_from_node, Some(tx_id))?;
+    Ok(serde_json::to_string(&outputs).unwrap())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn grin_output_get(
+    path: *const c_char,
+    chain_type: *const c_char,
+    account: *const c_char,
+    password: *const c_char,
+    check_node_api_http_addr: *const c_char,
+    refresh_from_node: bool,
+    tx_id: u32,
+    error: *mut u8,
+) -> *const c_char {
+    unwrap_to_c!(
+        output_get(
+            &c_str_to_rust(path),
+            &c_str_to_rust(chain_type),
+            &c_str_to_rust(account),
+            &c_str_to_rust(password),
+            &c_str_to_rust(check_node_api_http_addr),
+            refresh_from_node,
+            tx_id,
+        ),
+        error
+    )
+}
+
+
 fn balance(
     path: &str,
     chain_type: &str,
@@ -293,7 +371,7 @@ fn balance(
 ) -> Result<String, grin_wallet::Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
     let mut api = APIOwner::new(wallet.clone());
-    let (_validated, wallet_info) = api.retrieve_summary_info(refresh_from_node, 1)?;
+    let (_validated, wallet_info) = api.retrieve_summary_info(refresh_from_node, 10)?;
     Ok(serde_json::to_string(&wallet_info).unwrap())
 }
 
@@ -320,6 +398,41 @@ pub unsafe extern "C" fn grin_balance(
     )
 }
 
+fn height(
+    path: &str,
+    chain_type: &str,
+    account: &str,
+    password: &str,
+    check_node_api_http_addr: &str,
+) -> Result<String, grin_wallet::Error> {
+    let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
+    let mut api = APIOwner::new(wallet.clone());
+    let height = api.node_height()?;
+    Ok(serde_json::to_string(&height).unwrap())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn grin_height(
+    path: *const c_char,
+    chain_type: *const c_char,
+    account: *const c_char,
+    password: *const c_char,
+    check_node_api_http_addr: *const c_char,
+    error: *mut u8,
+) -> *const c_char {
+    unwrap_to_c!(
+        height(
+            &c_str_to_rust(path),
+            &c_str_to_rust(chain_type),
+            &c_str_to_rust(account),
+            &c_str_to_rust(password),
+            &c_str_to_rust(check_node_api_http_addr),
+        ),
+        error
+    )
+}
+
+
 #[derive(Serialize, Deserialize)]
 struct Strategy {
     selection_strategy_is_use_all: bool,
@@ -338,14 +451,14 @@ fn tx_strategies(
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
     let mut api = APIOwner::new(wallet.clone());
     let mut result = vec![];
-    if let Ok(smallest) = api.estimate_initiate_tx(None, amount, 1, 1, false) {
+    if let Ok(smallest) = api.estimate_initiate_tx(None, amount, 10, 1, false) {
         result.push(Strategy {
             selection_strategy_is_use_all: false,
             total: smallest.0,
             fee: smallest.1,
         })
     }
-    match api.estimate_initiate_tx(None, amount, 1, 1, true) {
+    match api.estimate_initiate_tx(None, amount, 10, 1, true) {
         Ok(all) => {
             result.push(Strategy {
                 selection_strategy_is_use_all: true,
@@ -396,7 +509,7 @@ fn tx_create(
     let (slate, lock_fn) = api.initiate_tx(
         None,
         amount,
-        1,
+        10,
         1,
         selection_strategy_is_use_all,
         Some(message.to_owned()),
@@ -569,7 +682,7 @@ fn tx_send(
     let (mut slate, lock_fn) = api.initiate_tx(
         None,
         amount,
-        1,
+        10,
         1,
         selection_strategy_is_use_all,
         Some(message.to_owned()),

@@ -63,5 +63,15 @@ const char* grin_wallet_check(const char* path, const char* chain_type, const ch
 // Restores a wallet contents from a seed file
 const char* grin_wallet_restore(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint8_t* error);
 
+// Get current height
+const char* grin_height(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint8_t* error);
+
+//Display output information
+const char* grin_outputs_get(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const bool refresh_from_node, const uint8_t* error);
+
+//Display output information
+const char* grin_output_get(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const bool refresh_from_node, const uint32_t tx_id, const uint8_t* error);
+
+
 
 

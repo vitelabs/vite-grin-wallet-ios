@@ -169,7 +169,7 @@ public struct ParticipantData {
     public var message_sig: [Int]?
 }
 
-public enum OutputStatus {
+public enum OutputStatus: String {
     /// Unconfirmed
     case unconfirmed
     /// Unspent
@@ -178,6 +178,53 @@ public enum OutputStatus {
     case locked
     /// Spent
     case spent
+}
+
+/// Information about an output that's being tracked by the wallet. Must be
+/// enough to reconstruct the commitment associated with the ouput when the
+/// root private key is known.
+
+public struct OutputData: Mappable {
+    /// Root key_id that the key for this output is derived from
+    public var root_key_id: String = ""
+    /// Derived key for this output
+    public var key_id: String = ""
+    /// How many derivations down from the root key
+    public var n_child: UInt32 = 0
+    /// The actual commit, optionally stored
+    public var commit: String?
+    /// PMMR Index, used on restore in case of duplicate wallets using the same
+    /// key_id (2 wallets using same seed, for instance
+    public var mmr_index: UInt64?
+    /// Value of the output, necessary to rebuild the commitment
+    public var value: UInt64  = 0
+    /// Current status of the output
+    public var status: OutputStatus = .unconfirmed
+    /// Height of the output
+    public var height: UInt64  = 0
+    /// Height we are locked until
+    public var lock_height: UInt64 = 0
+    /// Is this a coinbase output? Is it subject to coinbase locktime?
+    public var is_coinbase: Bool = false
+    /// Optional corresponding internal entry in tx entry log
+    public var tx_log_entry: UInt32?
+
+    public init?(map: Map) { }
+
+    public mutating func mapping(map: Map) {
+        root_key_id <- map["root_key_id"]
+        key_id <- map["key_id"]
+        n_child <- map["n_child"]
+        commit <- map["commit"]
+        mmr_index <- map["mmr_index"]
+        value <- map["value"]
+        status <- map["status"]
+        height <- map["height"]
+        lock_height <- map["lock_height"]
+        is_coinbase <- map["is_coinbase"]
+        tx_log_entry <- map["tx_log_entry"]
+    }
+
 }
 
 public struct TxStrategy: Mappable  {

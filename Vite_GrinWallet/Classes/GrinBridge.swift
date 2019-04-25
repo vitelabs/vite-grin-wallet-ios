@@ -175,11 +175,72 @@ open class GrinBridge {
         return handleCResult(error:error, cResult:cResult!).map { _ in ()}
     }
 
-    public func walletRestore() -> Result<Void, GrinWalletError> {
+    public func walletRestore() -> Result<(Void), GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_wallet_restore(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, &error)
         return handleCResult(error:error, cResult:cResult!).map { _ in ()}
     }
+
+    public func height() -> Result<(Bool, Int), GrinWalletError> {
+        var error: UInt8 = 0
+        let cResult = grin_height(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, &error)
+        return handleCResult(error:error, cResult:cResult!)
+            .flatMap {
+                guard let jsonArray = JSON(parseJSON: $0).array,
+                    let refreshed = jsonArray.last?.bool,
+                    let height =  jsonArray.first?.int else {
+                        return .failure(paresDataError)
+                }
+                return .success((refreshed, height))
+        }
+    }
+
+    public func outputsGet(refreshFromNode: Bool) -> Result<(refreshed:Bool, outputs:[(OutputData,[Int])]), GrinWalletError> {
+        var error: UInt8 = 0
+        let cResult = grin_outputs_get(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, refreshFromNode, &error)
+        return handleCResult(error:error, cResult:cResult!)
+            .flatMap {
+                guard let jsonArray = JSON(parseJSON: $0).array,
+                    let refreshed = jsonArray.first?.bool,
+                    let infoArray = jsonArray.last?.arrayObject as? [[Any]]else {
+                        return .failure(paresDataError)
+                }
+                let infos = infoArray.flatMap { (data: [Any]) -> (OutputData,[Int])? in
+                    if let outputDict = data.first as? [String: Any],
+                    let commitment = data.last as? [Int],
+                    let output = OutputData(JSON: outputDict) {
+                        return (output, commitment)
+                    } else {
+                        return nil
+                    }
+                }
+                return .success((refreshed,infos))
+        }
+    }
+
+    public func outputGet(refreshFromNode: Bool, txId: UInt32) -> Result<(refreshed:Bool, outputs:[(OutputData,[Int])]), GrinWalletError> {
+        var error: UInt8 = 0
+        let cResult = grin_output_get(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, refreshFromNode, txId, &error)
+        return handleCResult(error:error, cResult:cResult!)
+            .flatMap {
+                guard let jsonArray = JSON(parseJSON: $0).array,
+                    let refreshed = jsonArray.first?.bool,
+                    let infoArray = jsonArray.last?.arrayObject as? [[Any]]else {
+                        return .failure(paresDataError)
+                }
+                let infos = infoArray.flatMap { (data: [Any]) -> (OutputData,[Int])? in
+                    if let outputDict = data.first as? [String: Any],
+                        let commitment = data.last as? [Int],
+                        let output = OutputData(JSON: outputDict) {
+                        return (output, commitment)
+                    } else {
+                        return nil
+                    }
+                }
+                return .success((refreshed,infos))
+        }
+    }
+
 
     public func isResponseSlate(slatePath: String) -> Bool {
         return slatePath.components(separatedBy: ".").last == "response" || slatePath.contains("response")
