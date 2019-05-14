@@ -32,10 +32,11 @@ TODO: Add long description of the pod here.
 
   s.source_files = 'Vite_GrinWallet/Classes/**/*'
   s.vendored_libraries = "Vite_GrinWallet/Library/*.a"
+  #s.vendored_libraries = "rust/target/universal/release/libwallet.a"
+
   s.dependency 'Result'
   s.dependency 'ObjectMapper'
   s.dependency 'SwiftyJSON'
-  
 
   #s.vendored_libraries = "Vite_GrinWallet/Libraries/libwallet.a"
   #s.libraries = "libresolv.tbd"

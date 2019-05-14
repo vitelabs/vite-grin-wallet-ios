@@ -693,7 +693,7 @@ fn tx_send(
     api.verify_slate_messages(&slate)?;
     api.finalize_tx(&mut slate)?;
     api.post_tx(&slate.tx, true)?;
-    Ok("".to_owned())
+    Ok(serde_json::to_string(&slate).unwrap())
 }
 
 #[no_mangle]

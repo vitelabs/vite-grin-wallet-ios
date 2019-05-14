@@ -139,10 +139,16 @@ open class GrinBridge {
         return handleCResult(error:error, cResult:cResult!)
     }
 
-    public func txSend(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String, dest:String) -> Result<String, GrinWalletError> {
+    public func txSend(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String, dest:String) -> Result<Slate, GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_tx_send(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, amount, selectionStrategyIsUseAll, message, dest, &error)
-        return handleCResult(error:error, cResult:cResult!)
+        return handleCResult(error:error, cResult:cResult!).flatMap {
+            if let slate = Slate(JSONString:$0) {
+                return .success(slate)
+            } else {
+                return .failure(paresDataError)
+            }
+        }
     }
 
     public func txRepost(txId: UInt32) -> Result<String, GrinWalletError> {
