@@ -17,6 +17,7 @@ public struct WalletInfo: Mappable {
     public var total: Int = 0
     /// amount awaiting confirmation
     public var amountAwaitingConfirmation: Int = 0
+    public var amountAwaitingFinalization: Int = 0
     /// coinbases waiting for lock height
     public var amountImmature: Int = 0
     /// amount currently spendable
@@ -27,13 +28,14 @@ public struct WalletInfo: Mappable {
     public init?(map: Map) { }
 
     public mutating func mapping(map: Map) {
-        lastConfirmedHeight <- map["last_confirmed_height"]
-        minimumConfirmations <- map["minimum_confirmations"]
-        total <- map["total"]
-        amountAwaitingConfirmation <- map["amount_awaiting_confirmation"]
-        amountImmature <- map["amount_immature"]
-        amountCurrentlySpendable <- map["amount_currently_spendable"]
-        amountLocked <- map["amount_locked"]
+        lastConfirmedHeight <- (map["last_confirmed_height"], JSONTransformer.int)
+        minimumConfirmations <- (map["minimum_confirmations"], JSONTransformer.int)
+        total <- (map["total"], JSONTransformer.int)
+        amountAwaitingConfirmation <- (map["amount_awaiting_confirmation"], JSONTransformer.int)
+        amountAwaitingFinalization <- (map["amount_awaiting_finalization"], JSONTransformer.int)
+        amountImmature <- (map["amount_immature"], JSONTransformer.int)
+        amountCurrentlySpendable <- (map["amount_currently_spendable"], JSONTransformer.int)
+        amountLocked <- (map["amount_locked"], JSONTransformer.int)
     }
 }
 
@@ -97,9 +99,9 @@ public struct TxLogEntry: Mappable {
         confirmed <- map["confirmed"]
         numInputs <- map["num_inputs"]
         numOutputs <- map["num_outputs"]
-        amountCredited <- map["amount_credited"]
-        amountDebited <- map["amount_debited"]
-        fee <- map["fee"]
+        amountCredited <- (map["amount_credited"], JSONTransformer.int)
+        amountDebited <- (map["amount_debited"], JSONTransformer.int)
+        fee <- (map["fee"], JSONTransformer.int)
         messages <- map["messages"]
         storedTx <- map["stored_tx"]
     }
@@ -117,6 +119,7 @@ public struct ParticipantMessageData {
 }
 
 public struct Slate: Mappable {
+    public var versionInfo: VersionInfo = VersionInfo()
     /// The number of participants intended to take part in this transaction
     public var numParticipants: Int = 0
     /// Unique transaction ID, selected by sender
@@ -137,22 +140,41 @@ public struct Slate: Mappable {
     /// is receiver, though this will change for multi-party
     public var participantData: [Any] = []
     /// Slate format version
-    public var version: Int = 0
 
     public init?(map: Map) { }
 
     public mutating func mapping(map: Map) {
+        versionInfo <- map["version_info"]
         numParticipants <- map["num_participants"]
         id <- map["id"]
         tx <- map["tx"]
-        amount <- map["amount"]
-        fee <- map["fee"]
-        height <- map["height"]
-        lockHeight <- map["lock_height"]
+        amount <- (map["amount"] ,JSONTransformer.int)
+        fee <- (map["fee"] ,JSONTransformer.int)
+        height <- (map["height"] ,JSONTransformer.int)
+        lockHeight <- (map["lock_height"] ,JSONTransformer.int)
         participantData <- map["participant_data"]
-        version <- map["version"]
     }
 }
+
+public class VersionInfo: Mappable {
+
+    init() {
+
+    }
+    public var version: Int = 0
+    public var orig_version: Int = 0
+    public var block_header_version: Int = 0
+
+    required public init?(map: Map) { }
+
+    public func mapping(map: Map) {
+        version <- map["version"]
+        orig_version <- map["orig_version"]
+        block_header_version <- map["block_header_version"]
+    }
+
+}
+
 
 public struct ParticipantData {
     /// Id of participant in the transaction. (For now, 0=sender, 1=rec)
@@ -171,13 +193,13 @@ public struct ParticipantData {
 
 public enum OutputStatus: String {
     /// Unconfirmed
-    case unconfirmed
+    case unconfirmed = "Unconfirmed"
     /// Unspent
-    case unspent
+    case unspent = "Unspent"
     /// Locked
-    case locked
+    case locked = "Locked"
     /// Spent
-    case spent
+    case spent = "Spent"
 }
 
 /// Information about an output that's being tracked by the wallet. Must be
@@ -197,13 +219,13 @@ public struct OutputData: Mappable {
     /// key_id (2 wallets using same seed, for instance
     public var mmr_index: UInt64?
     /// Value of the output, necessary to rebuild the commitment
-    public var value: UInt64  = 0
+    public var value: Int  = 0
     /// Current status of the output
     public var status: OutputStatus = .unconfirmed
     /// Height of the output
-    public var height: UInt64  = 0
+    public var height: Int  = 0
     /// Height we are locked until
-    public var lock_height: UInt64 = 0
+    public var lock_height: Int = 0
     /// Is this a coinbase output? Is it subject to coinbase locktime?
     public var is_coinbase: Bool = false
     /// Optional corresponding internal entry in tx entry log
@@ -217,10 +239,10 @@ public struct OutputData: Mappable {
         n_child <- map["n_child"]
         commit <- map["commit"]
         mmr_index <- map["mmr_index"]
-        value <- map["value"]
+        value <- (map["value"], JSONTransformer.int)
         status <- map["status"]
-        height <- map["height"]
-        lock_height <- map["lock_height"]
+        height <- (map["height"], JSONTransformer.int)
+        lock_height <- (map["lock_height"], JSONTransformer.int)
         is_coinbase <- map["is_coinbase"]
         tx_log_entry <- map["tx_log_entry"]
     }
@@ -252,3 +274,16 @@ public enum GrinChainType: String {
     case mainnet
 }
 
+
+public struct JSONTransformer {
+
+
+    public static let int = TransformOf<Int, String>(fromJSON: { (string) -> Int? in
+        guard let string = string, let num = Int(string) else { return nil }
+        return num
+    }, toJSON: { (num) -> String? in
+        guard let num = num else { return nil }
+        return String(num)
+    })
+
+}

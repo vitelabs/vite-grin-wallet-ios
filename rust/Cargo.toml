@@ -7,32 +7,40 @@ publish = false
 edition = "2018"
 
 [dependencies]
-libc = "0.2.45"
-blake2-rfc = "0.2"
-chrono = "0.4.4"
-clap = "2.31"
+
+clap = { version = "2.31", features = ["yaml"] }
+rpassword = "2.0.0"
 ctrlc = { version = "3.1", features = ["termination"] }
-cursive = "0.9.0"
-humansize = "1.1.0"
-daemonize = "0.3"
+failure = "0.1"
+failure_derive = "0.1"
+prettytable-rs = "0.7"
+log = "0.4"
+uuid = "0.7.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_derive = "1"
-log = "0.4"
-term = "0.5"
-prettytable-rs = "0.7"
-uuid = "0.6.5"
 
-grin_wallet = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
-grin_core = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
-grin_util = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
-grin_keychain = { git = "https://github.com/haoshenyang/grin", rev = "caad24364cf116434b5c6a88301f2bd678d2c2eb" }
+#libc = "0.2.45"
+#blake2-rfc = "0.2"
+#chrono = "0.4.4"
+#cursive = "0.9.0"
+#humansize = "1.1.0"
+#daemonize = "0.3"
+#term = "0.5"
+
+grin_wallet_api = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+grin_wallet_impls = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+grin_wallet_libwallet = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+grin_wallet_config = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+grin_wallet_util = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+
 
 [build-dependencies]
 built = "0.3"
 reqwest = "0.9"
 flate2 = "1.0"
 tar = "0.4"
+cbindgen = "0.8.3"
 
 
 [lib]
@@ -40,4 +48,4 @@ name = "wallet"
 crate-type = ["staticlib"]
 
 [patch.crates-io]
-croaring = { path = "./croaring-rs" }
+croaring = { path = "./croaring-rs", version = "0.3.9" }

@@ -133,15 +133,9 @@ open class GrinBridge {
         }
     }
 
-    public func txFinalize(slatePath: String) -> Result<String, GrinWalletError> {
+    public func txFinalize(slatePath: String) -> Result<Slate, GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_tx_finalize(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, slatePath, &error)
-        return handleCResult(error:error, cResult:cResult!)
-    }
-
-    public func txSend(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String, dest:String) -> Result<Slate, GrinWalletError> {
-        var error: UInt8 = 0
-        let cResult = grin_tx_send(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, amount, selectionStrategyIsUseAll, message, dest, &error)
         return handleCResult(error:error, cResult:cResult!).flatMap {
             if let slate = Slate(JSONString:$0) {
                 return .success(slate)
@@ -151,9 +145,21 @@ open class GrinBridge {
         }
     }
 
-    public func txRepost(txId: UInt32) -> Result<String, GrinWalletError> {
+    public func txSend(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String, dest:String) -> Result<Slate, GrinWalletError> {
         var error: UInt8 = 0
-        let cResult = grin_tx_repost(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr,  txId, &error)
+        let cResult = grin_tx_send_http(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, amount, selectionStrategyIsUseAll, message, dest, &error)
+        return handleCResult(error:error, cResult:cResult!).flatMap {
+            if let slate = Slate(JSONString:$0) {
+                return .success(slate)
+            } else {
+                return .failure(paresDataError)
+            }
+        }
+    }
+
+    public func txRepost(slateID: String) -> Result<String, GrinWalletError> {
+        var error: UInt8 = 0
+        let cResult = grin_tx_post(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr,  slateID, &error)
         return handleCResult(error:error, cResult:cResult!)
     }
 
@@ -224,19 +230,19 @@ open class GrinBridge {
         }
     }
 
-    public func outputGet(refreshFromNode: Bool, txId: UInt32) -> Result<(refreshed:Bool, outputs:[(OutputData,[Int])]), GrinWalletError> {
+    public func outputGet(refreshFromNode: Bool, txId: UInt32) -> Result<(refreshed:Bool, outputs:[(OutputData,String)]), GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_output_get(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, refreshFromNode, txId, &error)
         return handleCResult(error:error, cResult:cResult!)
             .flatMap {
                 guard let jsonArray = JSON(parseJSON: $0).array,
                     let refreshed = jsonArray.first?.bool,
-                    let infoArray = jsonArray.last?.arrayObject as? [[Any]]else {
+                    let infoArray = jsonArray.last?.arrayObject as? [[String: Any]]else {
                         return .failure(paresDataError)
                 }
-                let infos = infoArray.flatMap { (data: [Any]) -> (OutputData,[Int])? in
-                    if let outputDict = data.first as? [String: Any],
-                        let commitment = data.last as? [Int],
+                let infos = infoArray.flatMap { (data: [String: Any]) -> (OutputData,String)? in
+                    if let outputDict = data["output"] as? [String: Any],
+                        let commitment = data["commit"] as? String,
                         let output = OutputData(JSON: outputDict) {
                         return (output, commitment)
                     } else {

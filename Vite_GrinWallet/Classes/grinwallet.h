@@ -43,10 +43,10 @@ const char* grin_tx_receive(const char* path, const char* chain_type, const char
 const char* grin_tx_finalize(const char* path,const char* chain_type,  const char* account,const char* password, const char* check_node_api_http_addr, const char* slate_path, const uint8_t* error);
 
 //Builds a transaction to send coins and sends to the specified listener directly
-const char* grin_tx_send(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint64_t amount, const bool selection_strategy_is_use_all, const char* message,  const char* dest, const uint8_t* error);
+const char* grin_tx_send_http(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint64_t amount, const bool selection_strategy_is_use_all, const char* message,  const char* dest, const uint8_t* error);
 
 //Reposts a stored, completed but unconfirmed transaction to the chain,
-const char* grin_tx_repost(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint32_t tx_id, const uint8_t* error);
+const char* grin_tx_post(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const char* tx_slate_id, const uint8_t* error);
 
 //Initialize a new wallet seed file and database
 const char* grin_wallet_init(const char* path, const char* chain_type, const char* password, const char* check_node_api_http_addr, const uint8_t* error);

@@ -13,22 +13,27 @@
 // limitations under the License.
 
 
-// This code is mostly based on Ivan Sorokin's work in IronBelly. Original copyright has been retained.
+// This code is mostly based on Ivan Sorokin's work in IronBelly(https://github.com/cyclefortytwo/ironbelly/blob/master/rust/src/lib.rs). Original copyright has been retained.
 
-use grin_core::global::ChainTypes;
-use grin_keychain::ExtKeychain;
-use grin_util::file::get_first_line;
-use grin_util::Mutex;
-use grin_wallet::libwallet::api::{APIForeign, APIOwner};
-use grin_wallet::libwallet::types::{NodeClient, WalletInst};
-use grin_wallet::{
-    instantiate_wallet, FileWalletCommAdapter, HTTPNodeClient, LMDBBackend, WalletConfig,
-    WalletSeed, HTTPWalletCommAdapter,
+use grin_wallet_libwallet::{slate_versions, InitTxArgs, NodeClient, WalletInst};
+use grin_wallet_util::grin_core::global::ChainTypes;
+use grin_wallet_util::grin_keychain::ExtKeychain;
+use grin_wallet_util::grin_util::file::get_first_line;
+use grin_wallet_util::grin_util::Mutex;
+
+use grin_wallet_config::WalletConfig;
+use grin_wallet_impls::{
+    instantiate_wallet, Error, ErrorKind, FileWalletCommAdapter, HTTPNodeClient,
+    HTTPWalletCommAdapter, LMDBBackend, WalletSeed,
 };
+
+use grin_wallet_api::{Foreign, Owner};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::Arc;
+use uuid::Uuid;
 
 fn c_str_to_rust(s: *const c_char) -> String {
     unsafe { CStr::from_ptr(s).to_string_lossy().into_owned() }
@@ -41,6 +46,24 @@ pub unsafe extern "C" fn cstr_free(s: *mut c_char) {
     }
     CString::from_raw(s);
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+struct State {
+    wallet_dir: String,
+    check_node_api_http_addr: String,
+    chain: String,
+    minimum_confirmations: u64,
+    account: Option<String>,
+    password: String,
+}
+
+impl State {
+    fn from_str(json: &str) -> Result<Self, Error> {
+        serde_json::from_str::<State>(json)
+            .map_err(|e| Error::from(ErrorKind::GenericError(e.to_string())))
+    }
+}
+
 
 pub fn get_wallet_config(wallet_dir: &str, chain_type: &str, check_node_api_http_addr: &str) -> WalletConfig {
     let chain_type_config = match chain_type {
@@ -67,12 +90,27 @@ pub fn get_wallet_config(wallet_dir: &str, chain_type: &str, check_node_api_http
     }
 }
 
+
+fn get_wallet(
+    path: &str,
+    chain_type: &str,
+    account: &str,
+    password: &str,
+    check_node_api_http_addr: &str,
+) -> Result<Arc<Mutex<WalletInst<impl NodeClient, ExtKeychain>>>, Error> {
+    let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
+    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
+    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
+    instantiate_wallet(wallet_config.clone(), node_client, password, account)
+}
+
+
 fn wallet_init(
     path: &str,
     chain_type: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let seed = WalletSeed::init_file(&wallet_config, 24, None, &password)?;
@@ -125,16 +163,16 @@ fn wallet_recovery(
     phrase: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let _res = WalletSeed::recover_from_phrase(&wallet_config, &phrase, &password)?;
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
     let wallet = instantiate_wallet(wallet_config.clone(), node_client, password, "default")?;
-    let mut api = APIOwner::new(wallet.clone());
+    let mut api = Owner::new(wallet.clone());
     match api.restore() {
         Ok(_) => Ok("".to_owned()),
-        Err(e) => Err(grin_wallet::Error::from(e)),
+        Err(e) => Err(Error::from(e)),
     }
 }
 
@@ -164,7 +202,7 @@ fn wallet_phrase(
     chain_type: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let seed = WalletSeed::from_file(&wallet_config, &password)?;
     seed.to_mnemonic()
@@ -189,20 +227,6 @@ pub unsafe extern "C" fn grin_wallet_phrase(
     )
 }
 
-fn get_wallet(
-    path: &str,
-    chain_type: &str,
-    account: &str,
-    password: &str,
-    check_node_api_http_addr: &str,
-) -> Result<Arc<Mutex<WalletInst<impl NodeClient, ExtKeychain>>>, grin_wallet::Error> {
-    let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
-    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
-
-    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
-    instantiate_wallet(wallet_config.clone(), node_client, password, account)
-}
-
 fn tx_get(
     path: &str,
     chain_type: &str,
@@ -211,9 +235,9 @@ fn tx_get(
     check_node_api_http_addr: &str,
     refresh_from_node: bool,
     tx_id: u32,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
     let txs = api.retrieve_txs(refresh_from_node, Some(tx_id), None)?;
     Ok(serde_json::to_string(&txs).unwrap())
 }
@@ -250,13 +274,13 @@ fn txs_get(
     password: &str,
     check_node_api_http_addr: &str,
     refresh_from_node: bool,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
 
     match api.retrieve_txs(refresh_from_node, None, None) {
         Ok(txs) => Ok(serde_json::to_string(&txs).unwrap()),
-        Err(e) => Err(grin_wallet::Error::from(e)),
+        Err(e) => Err(Error::from(e)),
     }
 }
 
@@ -290,9 +314,9 @@ fn outputs_get(
     password: &str,
     check_node_api_http_addr: &str,
     refresh_from_node: bool,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
     let outputs = api.retrieve_outputs(true,refresh_from_node, None)?;
     Ok(serde_json::to_string(&outputs).unwrap())
 }
@@ -328,9 +352,9 @@ fn output_get(
     check_node_api_http_addr: &str,
     refresh_from_node: bool,
     tx_id: u32,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
     let outputs = api.retrieve_outputs(true,refresh_from_node, Some(tx_id))?;
     Ok(serde_json::to_string(&outputs).unwrap())
 }
@@ -368,9 +392,9 @@ fn balance(
     password: &str,
     check_node_api_http_addr: &str,
     refresh_from_node: bool,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let mut api = Owner::new(wallet.clone());
     let (_validated, wallet_info) = api.retrieve_summary_info(refresh_from_node, 10)?;
     Ok(serde_json::to_string(&wallet_info).unwrap())
 }
@@ -404,9 +428,9 @@ fn height(
     account: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let mut api = Owner::new(wallet.clone());
     let height = api.node_height()?;
     Ok(serde_json::to_string(&height).unwrap())
 }
@@ -447,28 +471,37 @@ fn tx_strategies(
     password: &str,
     check_node_api_http_addr: &str,
     amount: u64,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
     let mut result = vec![];
-    if let Ok(smallest) = api.estimate_initiate_tx(None, amount, 10, 1, false) {
+    let mut args = InitTxArgs {
+        src_acct_name: None,
+        amount: amount,
+        minimum_confirmations: 10,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        selection_strategy_is_use_all: false,
+        message: None,
+        target_slate_version: Some(2),
+        estimate_only: Some(true),
+        send_args: None,
+    };
+    if let Ok(smallest) = api.init_send_tx(args.clone()) {
         result.push(Strategy {
             selection_strategy_is_use_all: false,
-            total: smallest.0,
-            fee: smallest.1,
+            total: smallest.amount,
+            fee: smallest.fee,
         })
     }
-    match api.estimate_initiate_tx(None, amount, 10, 1, true) {
-        Ok(all) => {
-            result.push(Strategy {
-                selection_strategy_is_use_all: true,
-                total: all.0,
-                fee: all.1,
-            });
-            Ok(serde_json::to_string(&result).unwrap())
-        }
-        Err(e) => Err(grin_wallet::Error::from(e)),
-    }
+    args.selection_strategy_is_use_all = true;
+    let all = api.init_send_tx(args).map_err(|e| Error::from(e))?;
+    result.push(Strategy {
+        selection_strategy_is_use_all: true,
+        total: all.amount,
+        fee: all.fee,
+    });
+    Ok(serde_json::to_string(&result).unwrap())
 }
 
 #[no_mangle]
@@ -503,19 +536,30 @@ fn tx_create(
     message: &str,
     amount: u64,
     selection_strategy_is_use_all: bool,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
-    let (slate, lock_fn) = api.initiate_tx(
-        None,
-        amount,
-        10,
-        1,
-        selection_strategy_is_use_all,
-        Some(message.to_owned()),
-    )?;
-    api.tx_lock_outputs(&slate, lock_fn)?;
-    Ok(serde_json::to_string(&slate).unwrap())
+    let mut api = Owner::new(wallet.clone());
+     let args = InitTxArgs {
+        src_acct_name: None,
+        amount: amount,
+        minimum_confirmations: 10,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        selection_strategy_is_use_all: selection_strategy_is_use_all,
+        message: Some(message.to_owned()),
+        target_slate_version: Some(2),
+        estimate_only: Some(false),
+        send_args: None,
+    };
+    let slate = api.init_send_tx(args).unwrap();
+    api.tx_lock_outputs(&slate, 0)?;
+    Ok(
+        serde_json::to_string(&slate_versions::VersionedSlate::into_version(
+            slate.clone(),
+            slate_versions::SlateVersion::V2,
+        ))
+        .map_err(|e| ErrorKind::GenericError(e.to_string()))?,
+    )
 }
 
 #[no_mangle]
@@ -552,9 +596,9 @@ fn tx_cancel(
     password: &str,
     check_node_api_http_addr: &str,
     id: u32,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let mut api = Owner::new(wallet.clone());
     api.cancel_tx(Some(id), None)?;
     Ok("".to_owned())
 }
@@ -590,14 +634,14 @@ fn tx_receive(
     check_node_api_http_addr: &str,
     slate_path: &str,
     message: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIForeign::new(wallet.clone());
+    let mut api = Foreign::new(wallet.clone(),None);
     let adapter = FileWalletCommAdapter::new();
     let mut slate = adapter.receive_tx_async(&slate_path)?;
     api.verify_slate_messages(&slate)?;
-    api.receive_tx(&mut slate, Some(account), Some(message.to_owned()))?;
-    Ok(serde_json::to_string(&slate).unwrap())
+    slate = api.receive_tx(&mut slate, Some(account), Some(message.to_owned()))?;
+    Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
 }
 
 #[no_mangle]
@@ -632,15 +676,26 @@ fn tx_finalize(
     password: &str,
     check_node_api_http_addr: &str,
     slate_path: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let api = Owner::new(wallet.clone());
     let adapter = FileWalletCommAdapter::new();
-    let mut slate = adapter.receive_tx_async(&slate_path)?;
-    api.verify_slate_messages(&slate)?;
-    api.finalize_tx(&mut slate)?;
-    api.post_tx(&slate.tx, true)?;
-    Ok("".to_owned())
+    let s = adapter.receive_tx_async(&slate_path)?;
+    api.verify_slate_messages(&s)?;
+    match api.finalize_tx(&s){
+        Ok(mut slate) => {
+            Ok(
+                serde_json::to_string(&slate_versions::VersionedSlate::into_version(
+                    slate.clone(),
+                    slate_versions::SlateVersion::V2,
+                ))
+                .map_err(|e| ErrorKind::GenericError(e.to_string()))?,
+            )
+        }
+        Err(e) => {
+            Err(Error::from(e))
+        }
+    }
 }
 
 #[no_mangle]
@@ -666,7 +721,7 @@ pub unsafe extern "C" fn grin_tx_finalize(
     )
 }
 
-fn tx_send(
+fn tx_send_http(
     path: &str,
     chain_type: &str,
     account: &str,
@@ -676,28 +731,52 @@ fn tx_send(
     selection_strategy_is_use_all: bool,
     message: &str,
     dest: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
-    let (mut slate, lock_fn) = api.initiate_tx(
-        None,
-        amount,
-        10,
-        1,
-        selection_strategy_is_use_all,
-        Some(message.to_owned()),
-    )?;
-    let adapter =  HTTPWalletCommAdapter::new();
-    slate = adapter.send_tx_sync(dest, &slate)?;
-    api.tx_lock_outputs(&slate, lock_fn)?;
-    api.verify_slate_messages(&slate)?;
-    api.finalize_tx(&mut slate)?;
-    api.post_tx(&slate.tx, true)?;
-    Ok(serde_json::to_string(&slate).unwrap())
+    let api = Owner::new(wallet.clone());
+    let adapter = HTTPWalletCommAdapter::new();
+    let args = InitTxArgs {
+        src_acct_name: None,
+        amount: amount,
+        minimum_confirmations: 10,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        selection_strategy_is_use_all: selection_strategy_is_use_all,
+        message: Some(message.to_owned()),
+        target_slate_version: Some(2),
+        estimate_only: Some(false),
+        send_args: None,
+    };
+    let slate = api.init_send_tx(args)?;
+    api.tx_lock_outputs(&slate, 0)?;
+    match adapter.send_tx_sync(dest, &slate) {
+                Ok(mut s) => {
+                    api.verify_slate_messages(&s)?;
+                    match api.finalize_tx(&s){
+                        Ok(mut slate) => {
+                            Ok(
+                                serde_json::to_string(&slate_versions::VersionedSlate::into_version(
+                                    slate.clone(),
+                                    slate_versions::SlateVersion::V2,
+                                ))
+                                .map_err(|e| ErrorKind::GenericError(e.to_string()))?,
+                            )
+                        }
+                        Err(e) => {
+                            Err(Error::from(e))
+                        }
+            }
+            
+        }
+        Err(e) => {
+            api.cancel_tx(None, Some(slate.id))?;
+            Err(Error::from(e))
+        }
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn grin_tx_send(
+pub unsafe extern "C" fn grin_tx_send_http(
     path: *const c_char,
     chain_type: *const c_char,
     account: *const c_char,
@@ -710,7 +789,7 @@ pub unsafe extern "C" fn grin_tx_send(
     error: *mut u8,
 ) -> *const c_char {
     unwrap_to_c!(
-        tx_send(
+        tx_send_http(
             &c_str_to_rust(path),
             &c_str_to_rust(chain_type),
             &c_str_to_rust(account),
@@ -725,46 +804,55 @@ pub unsafe extern "C" fn grin_tx_send(
     )
 }
 
-fn tx_repost(
+fn tx_post(
     path: &str,
     chain_type: &str,
     account: &str,
     password: &str,
     check_node_api_http_addr: &str,
-    tx_id: u32,
-) -> Result<String, grin_wallet::Error> {
+    tx_slate_id: &str,
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let api = APIOwner::new(wallet.clone());
-    let (_, txs) = api.retrieve_txs(true, Some(tx_id), None)?;
+    let api = Owner::new(wallet.clone());
+    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
+    let (_, txs) = api.retrieve_txs(true, None, Some(uuid))?;
+    if txs[0].confirmed {
+        return Err(Error::from(ErrorKind::GenericError(format!(
+            "Transaction with id {} is confirmed. Not posting.",
+            tx_slate_id
+        ))));
+    }
     let stored_tx = api.get_stored_tx(&txs[0])?;
-    if stored_tx.is_none() {
-        return Ok("".to_owned());
+    match stored_tx {
+        Some(stored_tx) => {
+            api.post_tx(&stored_tx, true)?;
+            Ok("".to_owned())
+        }
+        None => Err(Error::from(ErrorKind::GenericError(format!(
+            "Transaction with id {} does not have transaction data. Not posting.",
+            tx_slate_id
+        )))),
     }
-    if txs[0].confirmed {    
-        return Ok("".to_owned());
-    }
-    api.post_tx(&stored_tx.unwrap(), true)?;
-    Ok("".to_owned())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn grin_tx_repost(
+pub unsafe extern "C" fn grin_tx_post(
     path: *const c_char,
     chain_type: *const c_char,
     account: *const c_char,
     password: *const c_char,
     check_node_api_http_addr: *const c_char,
-    tx_id: u32,
+    tx_slate_id: *const c_char,
     error: *mut u8,
 ) -> *const c_char {
     unwrap_to_c!(
-        tx_repost(
+        tx_post(
             &c_str_to_rust(path),
             &c_str_to_rust(chain_type),
             &c_str_to_rust(account),
             &c_str_to_rust(password),
             &c_str_to_rust(check_node_api_http_addr),
-            tx_id,
+            &c_str_to_rust(tx_slate_id),
         ),
         error
     )
@@ -776,12 +864,12 @@ fn wallet_restore(
     account: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
+    let mut api = Owner::new(wallet.clone());
     match api.restore() {
         Ok(_) => Ok("".to_owned()),
-        Err(e) => Err(grin_wallet::Error::from(e)),
+        Err(e) => Err(Error::from(e)),
     }
 }
 
@@ -812,12 +900,13 @@ fn wallet_check(
     account: &str,
     password: &str,
     check_node_api_http_addr: &str,
-) -> Result<String, grin_wallet::Error> {
+    delete_unconfirmed: bool,
+) -> Result<String, Error> {
     let wallet = get_wallet(path, chain_type, account, password, check_node_api_http_addr)?;
-    let mut api = APIOwner::new(wallet.clone());
-    match api.check_repair() {
+    let mut api = Owner::new(wallet.clone());
+    match api.check_repair(delete_unconfirmed) {
         Ok(_) => Ok("".to_owned()),
-        Err(e) => Err(grin_wallet::Error::from(e)),
+        Err(e) => Err(Error::from(e)),
     }
 }
 
@@ -828,6 +917,7 @@ pub unsafe extern "C" fn grin_wallet_check(
     account: *const c_char,
     password: *const c_char,
     check_node_api_http_addr: *const c_char,
+    delete_unconfirmed: bool,
     error: *mut u8,
 ) -> *const c_char {
     unwrap_to_c!(
@@ -837,6 +927,7 @@ pub unsafe extern "C" fn grin_wallet_check(
             &c_str_to_rust(account),
             &c_str_to_rust(password),
             &c_str_to_rust(check_node_api_http_addr),
+            delete_unconfirmed,
         ),
         error
     )
