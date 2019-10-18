@@ -130,7 +130,7 @@ const char* grin_tx_cancel(const char* path, const char* chain_type, const char*
  * @param message                       An optional participant message to include alongside the sender's public ParticipantData within the slate.
  * @param error                         Error code pointer.
  *
- * @return                              Void String.
+ * @return                              Transaction slate.
  *
  */
 const char* grin_tx_receive(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const char* slate_path, const char* message, const uint8_t* error);
@@ -139,7 +139,7 @@ const char* grin_tx_receive(const char* path, const char* chain_type, const char
 /** 
  * @brief                               Processes a receiver's transaction file to finalize a transfer.
  * 
- * @param path                          The directory in which wallet files are stored.
+ * @param path                          Wallet files directory.
  * @param chain_type                    Chain parameters.
  * @param account                       Account name.
  * @param password                      Wallet password.
@@ -223,7 +223,7 @@ const char* grin_wallet_phrase(const char* path, const char* chain_type, const c
 /** 
  * @brief                               Recovery the wallet from mnemonic phrase.
  *
- * @param path                          The directory in which wallet files are stored.
+ * @param path                          Wallet files directory.
  * @param chain_type                    Chain parameters.
  * @param phrase                        The mnemonic phrase.
  * @param password                      Wallet password.
