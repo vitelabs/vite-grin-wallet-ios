@@ -25,7 +25,7 @@ class Tests: XCTestCase {
             }
         }
         if !secondBridge.walletExists() {
-            let result = secondBridge.walletInit()
+            let result = secondBridge.walletRecovery("alarm canal scheme actor left length bracket slush tuna garage prepare scout school pizza invest rose fork scorpion make enact false kidney mixed vast")
             switch result {
             case .success(_):
                 break

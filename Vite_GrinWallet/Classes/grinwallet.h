@@ -49,13 +49,13 @@ const char* grin_tx_send_http(const char* path, const char* chain_type, const ch
 const char* grin_tx_post(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const char* tx_slate_id, const uint8_t* error);
 
 //Initialize a new wallet seed file and database
-const char* grin_wallet_init(const char* path, const char* chain_type, const char* password, const char* check_node_api_http_addr, const uint8_t* error);
+//const char* grin_wallet_init(const char* path, const char* chain_type, const char* password, const char* check_node_api_http_addr, const uint8_t* error);
 
 //Wallet phrase
-const char* grin_wallet_phrase(const char* path, const char* chain_type, const char* password, const char* check_node_api_http_addr, const uint8_t* error);
+//const char* grin_wallet_phrase(const char* path, const char* chain_type, const char* password, const char* check_node_api_http_addr, const uint8_t* error);
 
 //Recovery the wallet from phrase
-const char* grin_wallet_recovery(const char* path, const char* chain_type, const char* phrase,const char* password, const char* check_node_api_http_addr, const uint8_t* error);
+const char* grin_wallet_recovery(const char* path, const char* chain_type, const char* account, const char* phrase,const char* password, const char* check_node_api_http_addr, const uint8_t* error);
 
 //Checks a wallet's outputs against a live node, repairing and restoring missing outputs if required
 const char* grin_wallet_check(const char* path, const char* chain_type, const char* account,const char* password, const char* check_node_api_http_addr, const uint8_t* error);

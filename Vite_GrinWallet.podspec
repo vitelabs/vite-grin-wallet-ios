@@ -32,13 +32,13 @@ TODO: Add long description of the pod here.
 
   s.source_files = 'Vite_GrinWallet/Classes/**/*'
   s.vendored_libraries = "Vite_GrinWallet/Library/*.a"
-  #s.vendored_libraries = "rust/target/universal/release/libwallet.a"
+#  s.vendored_libraries = "rust/target/universal/release/libwallet.a"
+#  s.vendored_libraries = "rust/target/aarch64-apple-ios/release/libwallet.a","rust/target/armv7-apple-ios/release/libwallet.a","rust/target/armv7s-apple-ios/release/libwallet.a","rust/target/x86_64-apple-ios/release/libwallet.a"
 
   s.dependency 'Result'
   s.dependency 'ObjectMapper'
   s.dependency 'SwiftyJSON'
 
-  #s.vendored_libraries = "Vite_GrinWallet/Libraries/libwallet.a"
   #s.libraries = "libresolv.tbd"
   
   # s.resource_bundles = {

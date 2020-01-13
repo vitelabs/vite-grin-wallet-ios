@@ -28,11 +28,11 @@ serde_derive = "1"
 #daemonize = "0.3"
 #term = "0.5"
 
-grin_wallet_api = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
-grin_wallet_impls = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
-grin_wallet_libwallet = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
-grin_wallet_config = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
-grin_wallet_util = { git = "https://github.com/mimblewimble/grin-wallet", rev = "c12f61d1543539167abc8acb595229ad7d238487" }
+grin_wallet_api = { git = "https://github.com/mimblewimble/grin-wallet", rev = "9360e5c56e64099f0eb8317edc80fe45613a94ce" }
+grin_wallet_impls = { git = "https://github.com/mimblewimble/grin-wallet", rev = "9360e5c56e64099f0eb8317edc80fe45613a94ce" }
+grin_wallet_libwallet = { git = "https://github.com/mimblewimble/grin-wallet", rev = "9360e5c56e64099f0eb8317edc80fe45613a94ce" }
+grin_wallet_config = { git = "https://github.com/mimblewimble/grin-wallet", rev = "9360e5c56e64099f0eb8317edc80fe45613a94ce" }
+grin_wallet_util = { git = "https://github.com/mimblewimble/grin-wallet", rev = "9360e5c56e64099f0eb8317edc80fe45613a94ce" }
 
 
 [build-dependencies]

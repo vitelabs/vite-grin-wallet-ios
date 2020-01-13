@@ -163,21 +163,22 @@ open class GrinBridge {
         return handleCResult(error:error, cResult:cResult!)
     }
 
-    public func walletInit() -> Result<String, GrinWalletError> {
-        var error: UInt8 = 0
-        let cResult = grin_wallet_init(walletUrl.path, chainType, password, checkNodeApiHttpAddr, &error)
-        return handleCResult(error:error, cResult:cResult!)
-    }
+//    public func walletInit() -> Result<String, GrinWalletError> {
+//        var error: UInt8 = 0
+//        let cResult = grin_wallet_init(walletUrl.path, chainType, password, checkNodeApiHttpAddr, &error)
+//        return handleCResult(error:error, cResult:cResult!)
+//    }
 
-    public func walletPhrase() -> Result<String, GrinWalletError> {
-        var error: UInt8 = 0
-        let cResult = grin_wallet_phrase(walletUrl.path, chainType, password, checkNodeApiHttpAddr, &error)
-        return handleCResult(error:error, cResult:cResult!)
-    }
+//    public func walletPhrase() -> Result<String, GrinWalletError> {
+//        var error: UInt8 = 0
+//        let cResult = grin_wallet_phrase(walletUrl.path, chainType, password, checkNodeApiHttpAddr, &error)
+//        return handleCResult(error:error, cResult:cResult!)
+//    }
 
     public func walletRecovery(_ phrase: String) -> Result<String, GrinWalletError> {
         var error: UInt8 = 0
-        let cResult = grin_wallet_recovery(walletUrl.path, chainType, phrase, password, checkNodeApiHttpAddr, &error)
+//        grin_wallet_recovery(walletUrl.path, chainType, account, phrase, password, checkNodeApiHttpAddr, &error)
+        let cResult = grin_wallet_recovery(walletUrl.path, chainType, account, phrase, password, checkNodeApiHttpAddr, &error)
         return handleCResult(error:error, cResult:cResult!)
     }
 
