@@ -87,13 +87,13 @@ open class GrinBridge {
         }
     }
 
-    public func txCreate(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String) -> Result<Slate, GrinWalletError> {
+    public func txCreate(amount: UInt64, selectionStrategyIsUseAll: Bool, message: String) -> Result<(Slate, Data), GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_tx_create(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, amount, selectionStrategyIsUseAll, message, &error)
         return handleCResult(error:error, cResult:cResult!)
             .flatMap {
-                if let slate = Slate(JSONString:$0) {
-                    return .success(slate)
+                if let slate = Slate(JSONString:$0), let data = $0.data(using: .utf8)  {
+                    return .success((slate, data))
                 } else {
                     return .failure(paresDataError)
                 }
@@ -120,13 +120,13 @@ open class GrinBridge {
         return handleCResult(error:error, cResult:cResult!).map { _ in ()}
     }
 
-    public func txReceive(slatePath: String, message: String) -> Result<Slate, GrinWalletError> {
+    public func txReceive(slatePath: String, message: String) -> Result<(Slate, Data), GrinWalletError> {
         var error: UInt8 = 0
         let cResult = grin_tx_receive(walletUrl.path, chainType, account, password, checkNodeApiHttpAddr, slatePath,message, &error)
         return handleCResult(error:error, cResult:cResult!)
             .flatMap {
-                if let slate = Slate(JSONString:$0) {
-                    return .success(slate)
+                if let slate = Slate(JSONString:$0),let data = $0.data(using: .utf8) {
+                    return .success((slate,data))
                 } else {
                     return .failure(paresDataError)
                 }

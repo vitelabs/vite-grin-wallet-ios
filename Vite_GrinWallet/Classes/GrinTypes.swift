@@ -140,6 +140,11 @@ public struct Slate: Mappable {
     /// is receiver, though this will change for multi-party
     public var participantData: [Any] = []
     /// Slate format version
+    ///
+    /// TTL, the block height at which wallets
+    public var ttl_cutoff_height: Int? = nil
+
+    public var payment_proof: Any?
 
     public init?(map: Map) { }
 
@@ -152,7 +157,10 @@ public struct Slate: Mappable {
         fee <- (map["fee"] ,JSONTransformer.int)
         height <- (map["height"] ,JSONTransformer.int)
         lockHeight <- (map["lock_height"] ,JSONTransformer.int)
+        ttl_cutoff_height <- (map["ttl_cutoff_height"],JSONTransformer.int)
         participantData <- map["participant_data"]
+        payment_proof <- map["payment_proof"]
+
     }
 }
 
