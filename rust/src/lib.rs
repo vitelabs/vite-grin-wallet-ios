@@ -24,7 +24,7 @@ use grin_wallet_util::grin_util::file::get_first_line;
 use grin_wallet_util::grin_util::Mutex;
 use grin_wallet_util::grin_util::ZeroingString;
 
-use grin_wallet_config::{WalletConfig, GRIN_WALLET_DIR};
+use grin_wallet_config::{WalletConfig};
 use grin_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, Error, ErrorKind, HTTPNodeClient, HttpSlateSender,
     PathToSlate, SlateGetter, SlateSender,
@@ -37,6 +37,10 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::Arc;
 use uuid::Uuid;
+use grin_wallet_util::grin_util::logger::LoggingConfig;
+use grin_wallet_util::grin_util::init_logger;
+use log::{Level};
+use std::path::PathBuf;
 
 fn c_str_to_rust(s: *const c_char) -> String {
     unsafe { CStr::from_ptr(s).to_string_lossy().into_owned() }
@@ -93,6 +97,23 @@ pub fn get_wallet_config(wallet_dir: &str, chain_type: &str, check_node_api_http
     }
 }
 
+pub fn get_wallet_log_config(wallet_dir: &str) -> LoggingConfig{
+    let mut path = PathBuf::from(wallet_dir);
+    path.push("grin-wallet.log");
+
+    LoggingConfig {
+        log_to_stdout: false,
+        stdout_log_level: Level::Warn,
+        log_to_file: true,
+        file_log_level: Level::Info,
+        log_file_path: path.to_str().unwrap().to_owned(),
+        log_file_append: true,
+        log_max_size: Some(1024 * 1024 * 16), // 16 megabytes default
+        log_max_files: Some(32),
+        tui_running: None,
+    }
+}
+
 
 fn get_wallet(
     path: &str,
@@ -115,6 +136,11 @@ fn get_wallet(
         >,
         Error,
 > {
+    let wallet_log_config = get_wallet_log_config(path);
+
+    // Load logging config
+    init_logger(Some(wallet_log_config), None);
+
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
