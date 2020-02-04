@@ -102,7 +102,7 @@ pub fn get_wallet_log_config(wallet_dir: &str) -> LoggingConfig{
     path.push("grin-wallet.log");
 
     LoggingConfig {
-        log_to_stdout: false,
+        log_to_stdout: true,
         stdout_log_level: Level::Warn,
         log_to_file: true,
         file_log_level: Level::Info,
