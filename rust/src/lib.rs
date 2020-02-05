@@ -136,11 +136,6 @@ fn get_wallet(
         >,
         Error,
 > {
-    let wallet_log_config = get_wallet_log_config(path);
-
-    // Load logging config
-    init_logger(Some(wallet_log_config), None);
-
     let wallet_config = get_wallet_config(path, chain_type, check_node_api_http_addr);
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
@@ -317,6 +312,34 @@ pub unsafe extern "C" fn grin_wallet_recovery(
 //         error
 //     )
 // }
+
+
+fn init_logger_0(
+    path: &str,
+    chain_type: &str,
+) -> Result<String, Error> {
+    let wallet_log_config = get_wallet_log_config(path);
+    // Load logging config
+    init_logger(Some(wallet_log_config), None);
+
+    Ok(serde_json::to_string("ok").unwrap())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn grin_init_logger_0(
+    path: *const c_char,
+    chain_type: *const c_char,
+    error: *mut u8,
+) -> *const c_char {
+    unwrap_to_c!(
+        init_logger_0(
+            &c_str_to_rust(path),
+            &c_str_to_rust(chain_type),
+        ),
+        error
+    )
+}
+
 
 fn tx_get(
     path: &str,
