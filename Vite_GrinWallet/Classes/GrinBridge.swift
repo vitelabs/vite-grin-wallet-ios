@@ -34,7 +34,7 @@ open class GrinBridge {
     open var chainType: String
     open var walletUrl: URL
     open var password: String
-    open var checkNodeApiHttpAddr = "https://grin.vite.net/fullnode"
+    open var checkNodeApiHttpAddr = "http://grin-v3.vite.net/fullnode"
     open var apiSecret = "Pbwnf9nJDEVcVPR8B42u"
     private let account = "default"
     lazy var paresDataError = GrinWalletError(code: -1, message: "paresDataError")
