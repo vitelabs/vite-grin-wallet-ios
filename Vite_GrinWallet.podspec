@@ -21,11 +21,11 @@ Pod::Spec.new do |s|
 TODO: Add long description of the pod here.
                        DESC
 
-  s.homepage         = 'https://github.com/haoshenyang/Vite_GrinWallet'
+  s.homepage         = 'https://github.com/vitelabs/vite-grin-wallet-ios'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'haoshenyang' => 'shenyang@vite.org' }
-  s.source           = { :git => 'https://github.com/haoshenyang/Vite_GrinWallet.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/vitelabs/vite-grin-wallet-ios.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '8.0'

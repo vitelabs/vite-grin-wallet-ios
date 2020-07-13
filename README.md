@@ -8,7 +8,7 @@ Rust-C bridge library and API definition are based on the existing work of [Iron
 
 Add the following line to your Podfile:
 ```
-pod 'Vite_GrinWallet', :git => 'https://github.com/vitelabs/Vite_GrinWallet.git'
+pod 'Vite_GrinWallet', :git => 'https://github.com/vitelabs/vite-grin-wallet-ios.git'
 ```
 
 ## Bridge API Specification
